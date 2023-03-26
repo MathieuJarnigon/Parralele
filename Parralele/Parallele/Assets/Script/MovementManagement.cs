@@ -4,37 +4,58 @@ using UnityEngine;
 
 public class MovementManagement : MonoBehaviour
 {
-    public float moveSpeed;
-    public float jumpForce;
-    public Transform feetPos;
-    public float checkRaduis;
-    public LayerMask whatIsGround;
+    public float jumpingPower;
+    public CapsuleCollider2D capsule2D;
+    public LayerMask layerMask;
 
-    private float moveInput;
-    private bool isGrounded;
-    private Rigidbody2D rb;
+    private bool isFacingRight = true;
+    private bool isJump = true;
+    private float horizontal;
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private float speed;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
-    void FixedUpdate()
+    void Update()
     {
-        moveInput = Input.GetAxisRaw("Horizontal");
-        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
+        horizontal = Input.GetAxisRaw("Horizontal");
 
-        isGrounded = Physics2D.OverlapCircle(feetPos.position, checkRaduis, whatIsGround);
-        if (isGrounded == true && Input.GetKey(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && Mathf.Abs(rb.velocity.y) < 0.001f && isJump == true)
         {
-            rb.velocity = Vector2.up * jumpForce;
+            rb.AddForce(new Vector2(0, jumpingPower), ForceMode2D.Impulse);
         }
-        rb.drag = 0f;
+
+        Flip();
     }
 
-    void OnDrawGizmosSelected()
+    private void FixedUpdate()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(feetPos.position, checkRaduis);
+        Collider2D[] colliders = Physics2D.OverlapCapsuleAll(capsule2D.bounds.center,
+            capsule2D.bounds.size, CapsuleDirection2D.Vertical, capsule2D.transform.rotation.eulerAngles.z, layerMask);
+
+        if (colliders.Length > 0)
+        {
+            isJump = true;
+        }
+        else
+        {
+            isJump = false;
+        }
+        rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
+    }
+
+    private void Flip()
+    {
+        if (isFacingRight && horizontal < 0f || !isFacingRight && horizontal > 0f)
+        {
+            isFacingRight = !isFacingRight;
+            Vector3 localScale = transform.localScale;
+            localScale.x *= -1f;
+            transform.localScale = localScale;
+        }
     }
 }
